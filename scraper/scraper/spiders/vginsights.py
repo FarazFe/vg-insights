@@ -59,6 +59,7 @@ class VGInsightsSpider(scrapy.Spider):
         item = response.meta['item']
         data = response.json()
         item['short_description'] = data['meta']['shortDescription']
+        item['title'] = data['name']
 
         # Send request for quick stats
         yield scrapy.Request('https://vginsights.com/api/v1/game/{}/quick-stats'.format(item['steam_id']),

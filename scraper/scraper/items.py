@@ -18,6 +18,7 @@ class ScraperItem(scrapy.Item):
 
     avg_6_months_price = scrapy.Field()
     short_description = scrapy.Field()
+    title = scrapy.Field()
 
     avg_playtime = scrapy.Field()
     med_playtime = scrapy.Field()
