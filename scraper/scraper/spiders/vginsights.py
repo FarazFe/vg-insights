@@ -1,7 +1,7 @@
 import scrapy
 import logging
 from ..items import ScraperItem, QuickStatsItem, PlayerInsightsItem, HistoricalDataItem, PlayerOverlapItem
-from ..utils import get_top_steam_games
+from ..utils import get_steam_ids_from_vginsights
 from ..config import SITE_TOKEN
 
 class VGInsightsSpider(scrapy.Spider):
@@ -18,16 +18,29 @@ class VGInsightsSpider(scrapy.Spider):
         super().__init__()
 
     def start_requests(self):
-        steam_ids = [1200, 1510, 570]  # Added Dota 2 (570)
+        # Get pages of games from VGInsights API
+        # steam_ids = get_top_steam_games(79)  #
+        # steam_ids = [1200]
+        # for steam_id in steam_ids:
+        #     url = 'https://vginsights.com/api/v1/game/{}/'.format(steam_id)
+        #     yield scrapy.Request(
+        #         url=url,
+        #         callback=self.parse_main,
+        #         headers=self.headers,
+        #         errback=self.handle_error
+        #     )
 
-        for steam_id in steam_ids:
-            url = 'https://vginsights.com/api/v1/game/{}/'.format(steam_id)
-            yield scrapy.Request(
-                url=url,
-                callback=self.parse_main,
-                headers=self.headers,
-                errback=self.handle_error
-            )
+
+        for page in get_steam_ids_from_vginsights():
+            for game in page:
+                if game.get('steam_id'):
+                    url = 'https://vginsights.com/api/v1/game/{}/'.format(game['steam_id'])
+                    yield scrapy.Request(
+                        url=url,
+                        callback=self.parse_main,
+                        headers=self.headers,
+                        errback=self.handle_error
+                    )
 
     def handle_error(self, failure):
         logging.error(f"Request failed: {failure.value}")
@@ -63,7 +76,15 @@ class VGInsightsSpider(scrapy.Spider):
         item['short_description'] = data['shortDescription']
         item['title'] = data['name']
         item['slug'] = data['slug']
-        
+
+        # Request player overlap data with limit=10
+        # yield scrapy.Request(
+        #     url=f'https://vginsights.com/api/v1/game/{item["steam_id"]}/player-overlap/?limit=10&offset=0&sortField=owner_overlap_index&sortOrder=-1&gameName=',
+        #     meta={'steam_id': item['steam_id'], 'offset': 0},
+        #     callback=self.parse_player_overlap,
+        #     headers=self.headers,
+        #     errback=self.handle_error
+        # )
         # Yield the ScraperItem first
         yield item
 
@@ -169,8 +190,6 @@ class VGInsightsSpider(scrapy.Spider):
         except Exception as e:
             steam_id = response.meta.get('item', {}).get('steam_id', 'unknown')
             logging.error(f"Error processing quick stats for steam_id {steam_id}: {str(e)}")
-            import traceback
-            logging.error(f"Traceback: {traceback.format_exc()}")
 
     def parse_player_insights(self, response):
         try:
@@ -204,9 +223,6 @@ class VGInsightsSpider(scrapy.Spider):
         except Exception as e:
             steam_id = response.meta.get('steam_id', 'unknown')
             logging.error(f"Error processing player insights for steam_id {steam_id}: {str(e)}")
-            import traceback
-            logging.error(f"Traceback: {traceback.format_exc()}")
-
     def parse_historical_data(self, response):
         try:
             json_data = response.json()
