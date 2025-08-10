@@ -5,11 +5,7 @@ import sys
 from typing import Generator, List, Dict, Any
 
 # Add the project root to Python path when running as script
-if __name__ == '__main__':
-    sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-    from config import SITE_TOKEN
-else:
-    from config import SITE_TOKEN
+from .config import SITE_TOKEN
 
 BASE_URL = 'https://vginsights.com/api/v1/games'
 PAGE_SIZE = 20
@@ -25,7 +21,7 @@ def get_top_steam_games(limit=5):
         if response.status_code == 200:
             json_response = json.loads(response.text)
             for appid in json_response:
-                results.append(sappid)
+                results.append(appid)
         else:
             print("There was an error in getting data in page {}".format(i))
     return results
@@ -56,7 +52,7 @@ def get_steam_ids_from_vginsights() -> Generator[List[Dict[str, Any]], None, Non
             'offset': offset,
             'sortOrder': 1,
             'isGamePageRequest': 'true',
-            'selectedPlatforms': 'steam'
+            'selectedPlatforms': 'playstation'
         }
         
         response = requests.get('https://vginsights.com/api/v1/games', params=params, headers=headers)
